@@ -8,67 +8,27 @@ interface CellImage {
 
 const GridBoard = () => {
   const [cellImages, setCellImages] = useState<CellImage>({});
-  const [uploadOrder, setUploadOrder] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
 
-  // Define clockwise order starting from top-left
-  const getClockwiseOrder = () => {
-    const order = [];
+  const handleCellClick = (cellType: string, position?: { row: number, col: number }) => {
+    let cellKey: string;
     
-    // Top row (left to right)
-    for (let col = 0; col < 8; col++) {
-      order.push(`0-${col}`);
+    if (cellType === 'center') {
+      cellKey = 'center';
+      console.log('Center cell clicked');
+    } else {
+      cellKey = `${position?.row}-${position?.col}`;
+      console.log(`Border cell clicked: row ${position?.row}, col ${position?.col}`);
     }
     
-    // Right column (top to bottom, excluding corners)
-    for (let row = 1; row < 9; row++) {
-      order.push(`${row}-7`);
-    }
-    
-    // Bottom row (right to left, excluding right corner)
-    for (let col = 6; col >= 0; col--) {
-      order.push(`9-${col}`);
-    }
-    
-    // Left column (bottom to top, excluding corners)
-    for (let row = 8; row > 0; row--) {
-      order.push(`${row}-0`);
-    }
-    
-    // Bottom extension (left to right)
-    for (let col = 2; col <= 4; col++) {
-      order.push(`10-${col}`);
-    }
-    
-    return order;
-  };
-
-  const clockwiseOrder = getClockwiseOrder();
-
-  const handleCellClick = () => {
+    setSelectedCell(cellKey);
     fileInputRef.current?.click();
-  };
-
-  const getNextAvailableCell = () => {
-    // First image always goes to center
-    if (uploadOrder.length === 0) {
-      return 'center';
-    }
-    
-    // Find next available cell in clockwise order
-    for (const cellKey of clockwiseOrder) {
-      if (!uploadOrder.includes(cellKey)) {
-        return cellKey;
-      }
-    }
-    
-    // If all cells are filled, start replacing from center again
-    return 'center';
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !selectedCell) return;
 
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
@@ -78,27 +38,17 @@ const GridBoard = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageUrl = e.target?.result as string;
-      const targetCell = getNextAvailableCell();
-      
       setCellImages(prev => ({
         ...prev,
-        [targetCell]: imageUrl
+        [selectedCell]: imageUrl
       }));
-      
-      setUploadOrder(prev => {
-        const newOrder = [...prev];
-        if (!newOrder.includes(targetCell)) {
-          newOrder.push(targetCell);
-        }
-        return newOrder;
-      });
-      
-      toast.success(`Image uploaded to ${targetCell === 'center' ? 'center cell' : 'border cell'}!`);
+      toast.success('Image uploaded successfully!');
     };
     reader.readAsDataURL(file);
     
     // Reset file input
     event.target.value = '';
+    setSelectedCell(null);
   };
 
   const getCellStyle = (cellKey: string) => {
@@ -127,9 +77,6 @@ const GridBoard = () => {
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Interactive Grid</h1>
         <p className="text-gray-600">Click on any cell to upload an image</p>
-        <p className="text-sm text-gray-500 mt-2">
-          First image → Center cell | Next images → Clockwise from top-left
-        </p>
       </div>
       
       <div className="grid grid-cols-8 gap-1 p-6 bg-white rounded-xl shadow-2xl">
@@ -139,15 +86,15 @@ const GridBoard = () => {
           return (
             <div
               key={`top-${colIndex}`}
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
               style={getCellStyle(cellKey)}
-              onClick={handleCellClick}
+              onClick={() => handleCellClick('border', { row: 0, col: colIndex })}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleCellClick();
+                  handleCellClick('border', { row: 0, col: colIndex });
                 }
               }}
             >
@@ -165,15 +112,15 @@ const GridBoard = () => {
           <React.Fragment key={`middle-row-${rowIndex}`}>
             {/* Left border cell */}
             <div
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
               style={getCellStyle(`${rowIndex + 1}-0`)}
-              onClick={handleCellClick}
+              onClick={() => handleCellClick('border', { row: rowIndex + 1, col: 0 })}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleCellClick();
+                  handleCellClick('border', { row: rowIndex + 1, col: 0 });
                 }
               }}
             >
@@ -187,15 +134,15 @@ const GridBoard = () => {
             {/* Center cell - only render once and span 6 columns */}
             {rowIndex === 0 && (
               <div
-                className="col-span-6 row-span-8 grid-cell flex items-center justify-center text-white font-bold text-lg relative overflow-hidden cursor-pointer"
+                className="col-span-6 row-span-8 grid-cell flex items-center justify-center text-white font-bold text-lg relative overflow-hidden"
                 style={getCellStyle('center')}
-                onClick={handleCellClick}
+                onClick={() => handleCellClick('center')}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleCellClick();
+                    handleCellClick('center');
                   }
                 }}
               >
@@ -209,15 +156,15 @@ const GridBoard = () => {
 
             {/* Right border cell */}
             <div
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
               style={getCellStyle(`${rowIndex + 1}-7`)}
-              onClick={handleCellClick}
+              onClick={() => handleCellClick('border', { row: rowIndex + 1, col: 7 })}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleCellClick();
+                  handleCellClick('border', { row: rowIndex + 1, col: 7 });
                 }
               }}
             >
@@ -236,15 +183,15 @@ const GridBoard = () => {
           return (
             <div
               key={`bottom-${colIndex}`}
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
               style={getCellStyle(cellKey)}
-              onClick={handleCellClick}
+              onClick={() => handleCellClick('border', { row: 9, col: colIndex })}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleCellClick();
+                  handleCellClick('border', { row: 9, col: colIndex });
                 }
               }}
             >
@@ -264,15 +211,15 @@ const GridBoard = () => {
             return (
               <div
                 key={`extension-${colIndex}`}
-                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
                 style={getCellStyle(cellKey)}
-                onClick={handleCellClick}
+                onClick={() => handleCellClick('border', { row: 10, col: colIndex + 2 })}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleCellClick();
+                    handleCellClick('border', { row: 10, col: colIndex + 2 });
                   }
                 }}
               >
@@ -289,7 +236,7 @@ const GridBoard = () => {
       
       <div className="mt-8 text-center max-w-md">
         <p className="text-sm text-gray-500">
-          Images upload in sequence: first to center, then clockwise from top-left. Images are automatically clipped to fit each cell.
+          Click on any cell to upload an image. Images will be automatically clipped to fit each cell perfectly.
         </p>
       </div>
     </div>
