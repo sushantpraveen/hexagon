@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -10,69 +11,20 @@ const SquareGrid = () => {
   const [cellImages, setCellImages] = useState<CellImage>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
-  const [uploadCount, setUploadCount] = useState<number>(0);
 
-  // Define the clockwise order for border cells (28 total border cells in 9x9 grid)
-  const getBorderCellOrder = () => {
-    const borderCells: string[] = [];
+  const handleCellClick = (cellType: string, position?: { row: number, col: number }) => {
+    let cellKey: string;
     
-    // Top row (0,0 to 0,8) - 9 cells
-    for (let col = 0; col < 9; col++) {
-      borderCells.push(`0-${col}`);
-    }
-    
-    // Right edge (1,8 to 7,8) - 7 cells
-    for (let row = 1; row < 8; row++) {
-      borderCells.push(`${row}-8`);
-    }
-    
-    // Bottom row (8,8 to 8,0) - 9 cells
-    for (let col = 8; col >= 0; col--) {
-      borderCells.push(`8-${col}`);
-    }
-    
-    // Left edge (7,0 to 1,0) - 7 cells
-    for (let row = 7; row > 0; row--) {
-      borderCells.push(`${row}-0`);
-    }
-    
-    return borderCells;
-  };
-
-  const getNextCellToFill = (count: number) => {
-    if (count === 0) return 'center';
-    
-    const borderOrder = getBorderCellOrder();
-    const borderIndex = count - 1;
-    
-    if (borderIndex < borderOrder.length) {
-      return borderOrder[borderIndex];
-    }
-    
-    return null; // Grid is full
-  };
-
-  const handleCellClick = (cellKey: string) => {
-    console.log(`Cell clicked: ${cellKey}`);
-    
-    // Check if cell already has an image (replacement mode)
-    if (cellImages[cellKey]) {
-      setSelectedCell(cellKey);
-      fileInputRef.current?.click();
-      return;
-    }
-    
-    // For new uploads, check if this is the next cell in sequence
-    const nextCell = getNextCellToFill(uploadCount);
-    
-    if (nextCell && cellKey === nextCell) {
-      setSelectedCell(cellKey);
-      fileInputRef.current?.click();
-    } else if (nextCell) {
-      toast.error(`Please upload to the ${nextCell === 'center' ? 'center cell' : 'next cell in sequence'} first`);
+    if (cellType === 'center') {
+      cellKey = 'center';
+      console.log('Center cell clicked');
     } else {
-      toast.error('Grid is full');
+      cellKey = `${position?.row}-${position?.col}`;
+      console.log(`Border cell clicked: row ${position?.row}, col ${position?.col}`);
     }
+    
+    setSelectedCell(cellKey);
+    fileInputRef.current?.click();
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,17 +39,10 @@ const SquareGrid = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageUrl = e.target?.result as string;
-      const wasReplacement = !!cellImages[selectedCell];
-      
       setCellImages(prev => ({
         ...prev,
         [selectedCell]: imageUrl
       }));
-      
-      if (!wasReplacement) {
-        setUploadCount(prev => prev + 1);
-      }
-      
       toast.success('Image uploaded successfully!');
     };
     reader.readAsDataURL(file);
@@ -118,68 +63,6 @@ const SquareGrid = () => {
       };
     }
     return {};
-  };
-
-  const isCellClickable = (cellKey: string) => {
-    // If cell has image, it's clickable for replacement
-    if (cellImages[cellKey]) return true;
-    
-    // Otherwise, check if it's the next cell in sequence
-    const nextCell = getNextCellToFill(uploadCount);
-    return nextCell === cellKey;
-  };
-
-  const renderCell = (row: number, col: number) => {
-    const cellKey = `${row}-${col}`;
-    
-    // Check if this is part of the center area (rows 2-6, cols 2-6)
-    if (row >= 2 && row <= 6 && col >= 2 && col <= 6) {
-      // Only render the center cell once at position 2,2
-      if (row === 2 && col === 2) {
-        const isClickable = isCellClickable('center');
-        return (
-          <div
-            key={`center-${row}-${col}`}
-            className={`col-span-5 row-span-5 grid-cell active:animate-grid-pulse flex items-center justify-center text-white font-bold text-2xl relative overflow-hidden ${
-              isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-            }`}
-            style={getCellStyle('center')}
-            onClick={() => handleCellClick('center')}
-            role="button"
-            tabIndex={0}
-          >
-            {!cellImages['center'] && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span>CENTER</span>
-              </div>
-            )}
-          </div>
-        );
-      }
-      // Skip other center cells
-      return null;
-    }
-
-    const isClickable = isCellClickable(cellKey);
-    
-    return (
-      <div
-        key={`cell-${row}-${col}`}
-        className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden ${
-          isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-        }`}
-        style={getCellStyle(cellKey)}
-        onClick={() => handleCellClick(cellKey)}
-        role="button"
-        tabIndex={0}
-      >
-        {!cellImages[cellKey] && (
-          <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
-            +
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -203,21 +86,138 @@ const SquareGrid = () => {
       
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Square Grid Layout</h1>
-        <p className="text-gray-600">Upload images in sequence: center first, then clockwise from top-left</p>
-        <p className="text-sm text-gray-500 mt-2">
-          Images uploaded: {uploadCount} / 29 (1 center + 28 border cells)
-        </p>
+        <p className="text-gray-600">Click on any cell to upload an image</p>
       </div>
       
       <div className="grid grid-cols-9 gap-1 p-6 bg-white rounded-xl shadow-2xl">
-        {Array.from({ length: 9 }, (_, row) =>
-          Array.from({ length: 9 }, (_, col) => renderCell(row, col))
-        )}
+        {/* Top row - 9 cells */}
+        {Array.from({ length: 9 }, (_, colIndex) => {
+          const cellKey = `0-${colIndex}`;
+          return (
+            <div
+              key={`top-${colIndex}`}
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              style={getCellStyle(cellKey)}
+              onClick={() => handleCellClick('border', { row: 0, col: colIndex })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCellClick('border', { row: 0, col: colIndex });
+                }
+              }}
+            >
+              {!cellImages[cellKey] && (
+                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
+                  +
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Middle rows with left border, center cell, and right border */}
+        {Array.from({ length: 7 }, (_, rowIndex) => (
+          <React.Fragment key={`middle-row-${rowIndex}`}>
+            {/* Left border cell */}
+            <div
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              style={getCellStyle(`${rowIndex + 1}-0`)}
+              onClick={() => handleCellClick('border', { row: rowIndex + 1, col: 0 })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCellClick('border', { row: rowIndex + 1, col: 0 });
+                }
+              }}
+            >
+              {!cellImages[`${rowIndex + 1}-0`] && (
+                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
+                  +
+                </div>
+              )}
+            </div>
+
+            {/* Center cell - only render once and span 5 columns and 5 rows */}
+            {rowIndex === 0 && (
+              <div
+                className="col-span-5 row-span-5 grid-cell active:animate-grid-pulse flex items-center justify-center text-white font-bold text-2xl relative overflow-hidden cursor-pointer"
+                style={getCellStyle('center')}
+                onClick={() => handleCellClick('center')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCellClick('center');
+                  }
+                }}
+              >
+                {!cellImages['center'] && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span>CENTER</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Right border cell */}
+            <div
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              style={getCellStyle(`${rowIndex + 1}-8`)}
+              onClick={() => handleCellClick('border', { row: rowIndex + 1, col: 8 })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCellClick('border', { row: rowIndex + 1, col: 8 });
+                }
+              }}
+            >
+              {!cellImages[`${rowIndex + 1}-8`] && (
+                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
+                  +
+                </div>
+              )}
+            </div>
+          </React.Fragment>
+        ))}
+
+        {/* Bottom row - 9 cells */}
+        {Array.from({ length: 9 }, (_, colIndex) => {
+          const cellKey = `8-${colIndex}`;
+          return (
+            <div
+              key={`bottom-${colIndex}`}
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
+              style={getCellStyle(cellKey)}
+              onClick={() => handleCellClick('border', { row: 8, col: colIndex })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCellClick('border', { row: 8, col: colIndex });
+                }
+              }}
+            >
+              {!cellImages[cellKey] && (
+                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
+                  +
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       
       <div className="mt-8 text-center max-w-md">
         <p className="text-sm text-gray-500">
-          Click on highlighted cells to upload images in sequence. Click on existing images to replace them.
+          Click on any cell to upload an image. Images will be automatically clipped to fit each cell perfectly.
         </p>
       </div>
     </div>
