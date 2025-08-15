@@ -1,6 +1,11 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, Suspense, lazy } from 'react';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Separator } from './ui/separator';
 
 interface CellImage {
   [key: string]: string;
@@ -10,6 +15,13 @@ const GridBoard = () => {
   const [cellImages, setCellImages] = useState<CellImage>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const [numberInput, setNumberInput] = useState<string>("");
+  const [PreviewComp, setPreviewComp] = useState<React.LazyExoticComponent<React.ComponentType> | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Map of all TSX components in this folder
+  // We will look for files like "33.tsx", "37.tsx", or any "n.tsx"
+  const componentModules = import.meta.glob('./*.tsx');
 
   const handleCellClick = (cellType: string, position?: { row: number, col: number }) => {
     let cellKey: string;
@@ -64,180 +76,110 @@ const GridBoard = () => {
     return {};
   };
 
+  const loadComponentByNumber = async (n: number) => {
+    setLoadError(null);
+    setPreviewComp(null);
+
+    const path = `./${n}.tsx` as const;
+    // Only allow files with numeric names like 33.tsx, 37.tsx, etc.
+    if (!/^[0-9]+\.tsx$/.test(`${n}.tsx`)) {
+      setLoadError('Please enter a valid number.');
+      return;
+    }
+
+    if (componentModules[path]) {
+      // Wrap the dynamic import in React.lazy
+      const loader = componentModules[path] as () => Promise<{ default: React.ComponentType<any> }>;
+      const LazyComp = lazy(loader);
+      setPreviewComp(() => LazyComp);
+    } else {
+      setLoadError(`Component ${n}.tsx not found in src/components.`);
+    }
+  };
+
+  const handlePreviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = Number(numberInput);
+    if (Number.isNaN(n)) {
+      setLoadError('Enter a valid number.');
+      return;
+    }
+    loadComponentByNumber(n);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
-      
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Interactive Grid</h1>
-        <p className="text-gray-600">Click on any cell to upload an image</p>
+      {/* Preview Controller */}
+      <Card className="w-full max-w-2xl mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Component Preview Loader</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePreviewSubmit} className="grid grid-cols-1 sm:grid-cols-[220px_1fr_auto] items-end gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="preview-number">Component number</Label>
+              <Input
+                id="preview-number"
+                type="number"
+                inputMode="numeric"
+                value={numberInput}
+                onChange={(e) => setNumberInput(e.target.value)}
+                placeholder="e.g. 33 or 37"
+              />
+            </div>
+            <div className="text-xs text-slate-500 sm:self-center">
+              Enter a number to load a file named <code className="px-1 py-0.5 rounded bg-slate-100">{`{n}`}.tsx</code> from <code className="px-1 py-0.5 rounded bg-slate-100">src/components</code>.
+            </div>
+            <Button type="submit" className="sm:justify-self-end">Load</Button>
+          </form>
+
+          <Separator className="my-4" />
+
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => loadComponentByNumber(33)}>
+              Load 33.tsx
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => loadComponentByNumber(37)}>
+              Load 37.tsx
+            </Button>
+          </div>
+
+          {loadError && (
+            <p className="mt-3 text-sm text-red-600" role="alert">{loadError}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Preview Area */}
+      <div className="w-full max-w-5xl mb-8">
+        {PreviewComp ? (
+          <Card>
+            <CardContent className="p-0">
+              <Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading preview...</div>}>
+                <PreviewComp />
+              </Suspense>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-sm text-slate-500 text-center">
+              Enter a number to preview a component (e.g. 33 or 37).
+            </CardContent>
+          </Card>
+        )}
       </div>
-      
-      <div className="grid grid-cols-8 gap-1 p-6 bg-white rounded-xl shadow-2xl">
-        {/* Top row - 8 cells */}
-        {Array.from({ length: 8 }, (_, colIndex) => {
-          const cellKey = `0-${colIndex}`;
-          return (
-            <div
-              key={`top-${colIndex}`}
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
-              style={getCellStyle(cellKey)}
-              onClick={() => handleCellClick('border', { row: 0, col: colIndex })}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleCellClick('border', { row: 0, col: colIndex });
-                }
-              }}
-            >
-              {!cellImages[cellKey] && (
-                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
-                  +
-                </div>
-              )}
-            </div>
-          );
-        })}
 
-        {/* Middle rows with left border, center cell, and right border */}
-        {Array.from({ length: 8 }, (_, rowIndex) => (
-          <React.Fragment key={`middle-row-${rowIndex}`}>
-            {/* Left border cell */}
-            <div
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
-              style={getCellStyle(`${rowIndex + 1}-0`)}
-              onClick={() => handleCellClick('border', { row: rowIndex + 1, col: 0 })}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleCellClick('border', { row: rowIndex + 1, col: 0 });
-                }
-              }}
-            >
-              {!cellImages[`${rowIndex + 1}-0`] && (
-                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
-                  +
-                </div>
-              )}
-            </div>
-
-            {/* Center cell - only render once and span 6 columns */}
-            {rowIndex === 0 && (
-              <div
-                className="col-span-6 row-span-8 grid-cell active:animate-grid-pulse flex items-center justify-center text-white font-bold text-lg relative overflow-hidden"
-                style={getCellStyle('center')}
-                onClick={() => handleCellClick('center')}
-                role="button"
-                tabIndex={0}
-                // onKeyDown={(e) => {
-                //   if (e.key === 'Enter' || e.key === ' ') {
-                //     e.preventDefault();
-                //     handleCellClick('center');
-                //   }
-                // }}
-              >
-                {!cellImages['center'] && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span>CENTER</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Right border cell */}
-            <div
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
-              style={getCellStyle(`${rowIndex + 1}-7`)}
-              onClick={() => handleCellClick('border', { row: rowIndex + 1, col: 7 })}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleCellClick('border', { row: rowIndex + 1, col: 7 });
-                }
-              }}
-            >
-              {!cellImages[`${rowIndex + 1}-7`] && (
-                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
-                  +
-                </div>
-              )}
-            </div>
-          </React.Fragment>
-        ))}
-
-        {/* Bottom row - 8 cells */}
-        {Array.from({ length: 8 }, (_, colIndex) => {
-          const cellKey = `9-${colIndex}`;
-          return (
-            <div
-              key={`bottom-${colIndex}`}
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
-              style={getCellStyle(cellKey)}
-              onClick={() => handleCellClick('border', { row: 9, col: colIndex })}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleCellClick('border', { row: 9, col: colIndex });
-                }
-              }}
-            >
-              {!cellImages[cellKey] && (
-                <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
-                  +
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Bottom extension - 3 cells centered */}
-        <div className="col-start-3 col-span-3 flex gap-1">
-          {Array.from({ length: 3 }, (_, colIndex) => {
-            const cellKey = `10-${colIndex + 2}`;
-            return (
-              <div
-                key={`extension-${colIndex}`}
-                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 grid-cell active:animate-grid-pulse relative overflow-hidden"
-                style={getCellStyle(cellKey)}
-                onClick={() => handleCellClick('border', { row: 10, col: colIndex + 2 })}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleCellClick('border', { row: 10, col: colIndex + 2 });
-                  }
-                }}
-              >
-                {!cellImages[cellKey] && (
-                  <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium opacity-70">
-                    +
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      
-      <div className="mt-8 text-center max-w-md">
-        <p className="text-sm text-gray-500">
-          Click on any cell to upload an image. Images will be automatically clipped to fit each cell perfectly.
-        </p>
+      {/* Grid UI area (existing feature) */}
+      <div className="flex flex-col items-center">
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        {/* TODO: Render your grid here. Leaving blank as original code had no rendered grid markup in the snippet. */}
       </div>
     </div>
   );

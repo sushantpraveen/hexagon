@@ -102,8 +102,6 @@ All colors MUST be HSL.
     @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
            border-2 border-[hsl(var(--grid-border))]
            transition-all duration-200 ease-in-out
-           hover:from-[hsl(var(--grid-primary-hover))] hover:to-[hsl(var(--grid-primary))]
-           hover:scale-105 hover:shadow-lg hover:shadow-[hsl(var(--grid-shadow))]/30
            cursor-pointer select-none
            relative overflow-hidden;
   }
@@ -113,7 +111,5 @@ All colors MUST be HSL.
     @apply absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 transition-opacity duration-200;
   }
   
-  .grid-cell:hover::before {
-    @apply opacity-100;
-  }
+
 }
