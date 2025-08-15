@@ -141,10 +141,10 @@ const SquareGrid = () => {
               )}
             </div>
 
-            {/* Center cell - only render once and span 5 columns and 5 rows */}
+            {/* Center cell - only render once and span 7 columns and 7 rows */}
             {rowIndex === 0 && (
               <div
-                className="col-span-5 row-span-5 grid-cell active:animate-grid-pulse flex items-center justify-center text-white font-bold text-2xl relative overflow-hidden cursor-pointer"
+                className="col-span-7 row-span-7 grid-cell active:animate-grid-pulse flex items-center justify-center text-white font-bold text-2xl relative overflow-hidden cursor-pointer"
                 style={getCellStyle('center')}
                 onClick={() => handleCellClick('center')}
                 role="button"
