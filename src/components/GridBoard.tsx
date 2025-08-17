@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, Suspense, lazy } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -6,6 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
+import { Link } from 'react-router-dom';
 
 interface CellImage {
   [key: string]: string;
@@ -109,6 +109,22 @@ const GridBoard = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      {/* Navigation Links */}
+      <div className="fixed top-4 right-4 z-10 flex gap-2">
+        <Link 
+          to="/square-grid" 
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors text-sm"
+        >
+          Square Grid
+        </Link>
+        <Link 
+          to="/hex-grid" 
+          className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors text-sm"
+        >
+          Hex Grid
+        </Link>
+      </div>
+
       {/* Preview Controller */}
       <Card className="w-full max-w-2xl mb-6">
         <CardHeader>
