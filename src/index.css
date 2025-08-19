@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -110,7 +111,93 @@ All colors MUST be HSL.
     @apply absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 transition-opacity duration-200;
   }
 
-  /* Hexagonal Grid Styles */
+  /* Honeycomb Hexagonal Grid Styles */
+  .hex-honeycomb-container {
+    @apply flex flex-col items-center relative;
+  }
+
+  .hex-honeycomb-row {
+    @apply flex;
+  }
+
+  .hex-honeycomb-cell {
+    width: 50px;
+    height: 50px;
+    margin: 1px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    
+    /* Create hexagon shape using clip-path */
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    
+    @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
+           border-2 border-[hsl(var(--grid-border))]
+           overflow-hidden;
+  }
+
+  .hex-honeycomb-cell:hover {
+    @apply scale-110 brightness-110 z-10;
+  }
+
+  .hex-honeycomb-cell:active {
+    @apply scale-95;
+  }
+
+  .hex-cell-content {
+    @apply absolute inset-0 flex items-center justify-center;
+  }
+
+  /* Responsive honeycomb sizing */
+  @media (min-width: 640px) {
+    .hex-honeycomb-cell {
+      width: 60px;
+      height: 60px;
+      margin: 1px;
+    }
+    
+    .hex-honeycomb-row {
+      margin-bottom: -15px;
+    }
+    
+    .hex-honeycomb-row[style*="margin-left"] {
+      margin-left: 30px !important;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .hex-honeycomb-cell {
+      width: 70px;
+      height: 70px;
+      margin: 2px;
+    }
+    
+    .hex-honeycomb-row {
+      margin-bottom: -17px;
+    }
+    
+    .hex-honeycomb-row[style*="margin-left"] {
+      margin-left: 35px !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hex-honeycomb-cell {
+      width: 80px;
+      height: 80px;
+      margin: 2px;
+    }
+    
+    .hex-honeycomb-row {
+      margin-bottom: -20px;
+    }
+    
+    .hex-honeycomb-row[style*="margin-left"] {
+      margin-left: 40px !important;
+    }
+  }
+
+  /* Legacy hex grid styles for existing components */
   .hex-grid-container {
     @apply flex flex-col items-center relative;
   }

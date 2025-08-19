@@ -7,6 +7,11 @@ interface CellImage {
   [key: string]: string;
 }
 
+interface AxialCoord {
+  q: number;
+  r: number;
+}
+
 const HexGrid = () => {
   const [cellImages, setCellImages] = useState<CellImage>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,18 +60,50 @@ const HexGrid = () => {
     return {};
   };
 
-  // Grid structure matching the reference image - hexagonal flower pattern
-  const gridRows = [
-    { cols: 3, offset: 4.5, type: 'hex' },     // Row 1: 3 hexagons (top)
-    { cols: 4, offset: 3.5, type: 'hex' },     // Row 2: 4 hexagons 
-    { cols: 5, offset: 2.5, type: 'hex' },     // Row 3: 5 hexagons
-    { cols: 2, offset: 2, type: 'hex-side' },  // Row 4: 2 side hexagons
-    { cols: 1, offset: 5.5, type: 'center' },  // Row 4: Large center hexagon
-    { cols: 2, offset: 8, type: 'hex-side' },  // Row 4: 2 side hexagons (right)
-    { cols: 5, offset: 2.5, type: 'hex' },     // Row 5: 5 hexagons
-    { cols: 4, offset: 3.5, type: 'hex' },     // Row 6: 4 hexagons
-    { cols: 3, offset: 4.5, type: 'hex' },     // Row 7: 3 hexagons (bottom)
-  ];
+  // Generate hexagonal coordinates
+  const generateHexCoordinates = (outerRadius: number, innerRadius: number): AxialCoord[] => {
+    const coords: AxialCoord[] = [];
+    
+    for (let q = -outerRadius; q <= outerRadius; q++) {
+      const r1 = Math.max(-outerRadius, -q - outerRadius);
+      const r2 = Math.min(outerRadius, -q + outerRadius);
+      
+      for (let r = r1; r <= r2; r++) {
+        // Skip inner circle (hollow center)
+        const distance = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
+        if (distance > innerRadius) {
+          coords.push({ q, r });
+        }
+      }
+    }
+    
+    return coords;
+  };
+
+  // Group coordinates by row (r coordinate) and sort by column (q coordinate)
+  const groupByRows = (coords: AxialCoord[]) => {
+    const rows: { [key: number]: AxialCoord[] } = {};
+    
+    coords.forEach(coord => {
+      if (!rows[coord.r]) {
+        rows[coord.r] = [];
+      }
+      rows[coord.r].push(coord);
+    });
+    
+    // Sort each row by q coordinate
+    Object.keys(rows).forEach(r => {
+      rows[parseInt(r)].sort((a, b) => a.q - b.q);
+    });
+    
+    return rows;
+  };
+
+  const outerRadius = 6;
+  const innerRadius = 3;
+  const hexCoords = generateHexCoordinates(outerRadius, innerRadius);
+  const rowGroups = groupByRows(hexCoords);
+  const sortedRows = Object.keys(rowGroups).map(Number).sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4 lg:p-8">
@@ -92,53 +129,54 @@ const HexGrid = () => {
         <p className="text-xs sm:text-sm lg:text-base text-gray-600">Click on any cell to upload an image</p>
       </div>
       
-      <div className="hex-grid-container">
-        {gridRows.map((row, rowIndex) => (
-          <div 
-            key={rowIndex} 
-            className="hex-row" 
-            style={{ 
-              marginLeft: `${row.offset * 18}px`,
-              marginBottom: row.type === 'center' ? '-50px' : (row.type === 'hex-side' ? '-25px' : '-22px'),
-              position: row.type === 'hex-side' ? 'absolute' : 'relative',
-              top: row.type === 'hex-side' && rowIndex === 4 ? '0px' : 'auto',
-              zIndex: row.type === 'center' ? 2 : 1
-            }}
-          >
-            {Array.from({ length: row.cols }, (_, colIndex) => {
-              const cellKey = `${rowIndex}-${colIndex}`;
-              const isCenterCell = row.type === 'center';
-              
-              return (
-                <div
-                  key={cellKey}
-                  className={isCenterCell ? 'center-hex-cell' : 'hex-cell'}
-                  style={getCellStyle(cellKey)}
-                  onClick={() => handleCellClick(cellKey)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleCellClick(cellKey);
-                    }
-                  }}
-                >
-                  {!cellImages[cellKey] && (
-                    <div className="hex-content">
-                      <span className="text-white text-xs sm:text-sm font-medium opacity-70">+</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+      <div className="hex-honeycomb-container">
+        {sortedRows.map((r) => {
+          const isOddRow = Math.abs(r) % 2 === 1;
+          const rowCells = rowGroups[r];
+          
+          return (
+            <div 
+              key={r} 
+              className="hex-honeycomb-row"
+              style={{
+                marginLeft: isOddRow ? '25px' : '0px', // Half-width offset for odd rows
+                marginBottom: '-12px' // Overlap for honeycomb effect
+              }}
+            >
+              {rowCells.map((coord) => {
+                const cellKey = `${coord.q}-${coord.r}`;
+                
+                return (
+                  <div
+                    key={cellKey}
+                    className="hex-honeycomb-cell"
+                    style={getCellStyle(cellKey)}
+                    onClick={() => handleCellClick(cellKey)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleCellClick(cellKey);
+                      }
+                    }}
+                  >
+                    {!cellImages[cellKey] && (
+                      <div className="hex-cell-content">
+                        <span className="text-white text-xs sm:text-sm font-medium opacity-70">+</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
       
       <div className="mt-2 sm:mt-4 lg:mt-8 text-center max-w-md px-4">
         <p className="text-xs sm:text-sm text-gray-500">
-          Click on any cell to upload an image. Images will be automatically clipped to fit each cell perfectly.
+          Click on any cell to upload an image. The center area is hollow as shown in the reference.
         </p>
       </div>
     </div>
