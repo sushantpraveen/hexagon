@@ -60,18 +60,26 @@ const HexGrid = () => {
     return {};
   };
 
-  // Generate hexagonal coordinates
-  const generateHexCoordinates = (outerRadius: number, innerRadius: number): AxialCoord[] => {
+  // Generate hexagonal coordinates for the hollow center pattern
+  const generateHexCoordinates = (): AxialCoord[] => {
     const coords: AxialCoord[] = [];
+    const outerRadius = 6;
     
     for (let q = -outerRadius; q <= outerRadius; q++) {
       const r1 = Math.max(-outerRadius, -q - outerRadius);
       const r2 = Math.min(outerRadius, -q + outerRadius);
       
       for (let r = r1; r <= r2; r++) {
-        // Skip inner circle (hollow center)
         const distance = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
-        if (distance > innerRadius) {
+        
+        // Create hollow center pattern - exclude inner cells to create the hollow center
+        const isInnerHollow = (
+          (distance <= 2) || // Inner core
+          (distance === 3 && Math.abs(q) <= 1 && Math.abs(r) <= 1) || // Additional inner cells
+          (distance === 3 && Math.abs(-q - r) <= 1 && (Math.abs(q) <= 1 || Math.abs(r) <= 1))
+        );
+        
+        if (!isInnerHollow) {
           coords.push({ q, r });
         }
       }
@@ -99,9 +107,7 @@ const HexGrid = () => {
     return rows;
   };
 
-  const outerRadius = 6;
-  const innerRadius = 3;
-  const hexCoords = generateHexCoordinates(outerRadius, innerRadius);
+  const hexCoords = generateHexCoordinates();
   const rowGroups = groupByRows(hexCoords);
   const sortedRows = Object.keys(rowGroups).map(Number).sort((a, b) => a - b);
 
@@ -131,7 +137,7 @@ const HexGrid = () => {
       
       <div className="hex-honeycomb-container">
         {sortedRows.map((r) => {
-          const isOddRow = Math.abs(r) % 2 === 1;
+          const isEvenRow = r % 2 === 0;
           const rowCells = rowGroups[r];
           
           return (
@@ -139,8 +145,7 @@ const HexGrid = () => {
               key={r} 
               className="hex-honeycomb-row"
               style={{
-                marginLeft: isOddRow ? '25px' : '0px', // Half-width offset for odd rows
-                marginBottom: '-12px' // Overlap for honeycomb effect
+                marginLeft: isEvenRow ? '0px' : '35px', // Offset for odd rows
               }}
             >
               {rowCells.map((coord) => {
@@ -149,7 +154,7 @@ const HexGrid = () => {
                 return (
                   <div
                     key={cellKey}
-                    className="hex-honeycomb-cell"
+                    className="hex-honeycomb-cell-rotated"
                     style={getCellStyle(cellKey)}
                     onClick={() => handleCellClick(cellKey)}
                     role="button"
