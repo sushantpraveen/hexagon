@@ -39,6 +39,16 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Rotated hex cell sizing (for merged blocks) */
+    --hex-rot-w: 70px; /* matches .hex-honeycomb-cell-rotated width (base) */
+    --hex-rot-h: 60px; /* matches .hex-honeycomb-cell-rotated height (base) */
+    --hex-rot-m: 1px;  /* matches .hex-honeycomb-cell-rotated margin (base) */
+
+    /* Legacy hex grid sizing (pointy-top) */
+    --hex-w: 50px;
+    --hex-h: 50px;
+    --hex-m: 1px; /* requested 1px gap around each cell */
+
     /* Grid Theme Colors */
     --grid-primary: 180 100% 56%;
     --grid-primary-hover: 180 100% 60%;
@@ -105,12 +115,12 @@ All colors MUST be HSL.
            cursor-pointer select-none
            relative overflow-hidden;
   }
-  
+
   .grid-cell::before {
     content: '';
     @apply absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 transition-opacity duration-200;
   }
-
+  
   /* Honeycomb Hexagonal Grid Styles */
   .hex-honeycomb-container {
     @apply flex flex-col items-center relative;
@@ -118,7 +128,7 @@ All colors MUST be HSL.
 
   .hex-honeycomb-row {
     @apply flex;
-    margin-bottom: -25px; /* Overlap for honeycomb effect */
+    margin-bottom: -25px; /* Vertical gap between rows */
   }
 
   .hex-honeycomb-cell {
@@ -135,6 +145,21 @@ All colors MUST be HSL.
     @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
            border-2 border-[hsl(var(--grid-border))]
            overflow-hidden;
+  }
+
+  /* Merged block that spans N rotated hex cells */
+  .hex-merged-block {
+    height: var(--hex-rot-h);
+    /* total width = N * (cell width + left+right margins) */
+    width: calc(var(--merge-cells, 1) * (var(--hex-rot-w) + (2 * var(--hex-rot-m))));
+    margin: var(--hex-rot-m);
+    @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
+           border-2 border-[hsl(var(--grid-border))]
+           overflow-hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px; /* slight rounding for merged rectangle */
   }
 
   /* Rotated hexagon cells (flat top/bottom) */
@@ -165,9 +190,14 @@ All colors MUST be HSL.
   .hex-cell-content {
     @apply absolute inset-0 flex items-center justify-center;
   }
-
+  
   /* Responsive honeycomb sizing */
   @media (min-width: 640px) {
+    :root {
+      --hex-rot-w: 80px;
+      --hex-rot-h: 70px;
+      --hex-rot-m: 1px;
+    }
     .hex-honeycomb-cell {
       width: 60px;
       height: 60px;
@@ -181,11 +211,16 @@ All colors MUST be HSL.
     }
     
     .hex-honeycomb-row {
-      margin-bottom: -30px;
+      margin-bottom: -30px; /* Slightly larger gap on small screens */
     }
   }
 
   @media (min-width: 768px) {
+    :root {
+      --hex-rot-w: 90px;
+      --hex-rot-h: 80px;
+      --hex-rot-m: 2px;
+    }
     .hex-honeycomb-cell {
       width: 70px;
       height: 70px;
@@ -204,6 +239,11 @@ All colors MUST be HSL.
   }
 
   @media (min-width: 1024px) {
+    :root {
+      --hex-rot-w: 100px;
+      --hex-rot-h: 90px;
+      --hex-rot-m: 2px;
+    }
     .hex-honeycomb-cell {
       width: 80px;
       height: 80px;
@@ -217,7 +257,7 @@ All colors MUST be HSL.
     }
     
     .hex-honeycomb-row {
-      margin-bottom: -40px;
+      margin-bottom: 16px;
     }
   }
 
@@ -225,25 +265,59 @@ All colors MUST be HSL.
   .hex-grid-container {
     @apply flex flex-col items-center relative;
   }
-
+  
   .hex-row {
     @apply flex;
   }
 
+  /* Legacy merged block that spans N contiguous hex cells horizontally */
+  .hex-merged-block-legacy {
+    height: var(--hex-h);
+    /* total width = N * (cell width + left+right margins) */
+    width: calc(var(--merge-cells, 1) * (var(--hex-w) + (2 * var(--hex-m))));
+    margin: var(--hex-m);
+    @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
+           border border-[hsl(var(--grid-border))]
+           overflow-hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px; /* slight rounding for merged rectangle */
+  }
+
+  /* Alternate rows offset by half hex width */
+  .hex-row.offset {
+    margin-left: calc(var(--hex-w) /28);
+  }
+
+  /* Remove vertical gap between rows by overlapping 1/4 of hex height */
+  .hex-row + .hex-row {
+    /* overlap intrinsic vertical spacing plus the 1px margin */
+    margin-top: calc(-1 * ((var(--hex-h) / 4) + var(--hex-m)));
+  }
+
   .hex-cell {
-    width: 45px;
-    height: 45px;
-    margin: -1px;
+    width: var(--hex-w);
+    height: var(--hex-h);
+    margin: var(--hex-m);
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
     
-    /* Create hexagon shape using clip-path */
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    /* Create pointy-top hexagon shape using clip-path */
+    clip-path: polygon(0% 25%, 0% 75%, 50% 100%, 100% 75%, 100% 25%, 50% 0%);
     
     @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
            border border-[hsl(var(--grid-border))]
            overflow-hidden;
+  }
+
+  /* Force solid green when active, overriding gradient */
+  .hex-cell.hex-cell--active {
+    background-image: none !important;
+    background-color: #22c55e !important; /* emerald-500 */
+    border-color: #16a34a !important;     /* green-600 */
+    z-index: 10;
   }
 
   /* Large center hexagonal cell */
@@ -255,8 +329,8 @@ All colors MUST be HSL.
     cursor: pointer;
     transition: all 0.2s ease-in-out;
     
-    /* Create large hexagon shape using clip-path */
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    /* Create large pointy-top hexagon shape using clip-path */
+    clip-path: polygon(0% 25%, 0% 75%, 50% 100%, 100% 75%, 100% 25%, 50% 0%);
     
     @apply bg-gradient-to-br from-[hsl(var(--grid-primary))] to-[hsl(var(--grid-primary-active))]
            border-2 border-[hsl(var(--grid-border))]
@@ -278,43 +352,46 @@ All colors MUST be HSL.
   /* Responsive hexagon sizing */
   @media (min-width: 640px) {
     .hex-cell {
-      width: 55px;
-      height: 55px;
-      margin: -1px;
+      width: 60px;
+      height: 60px;
+      margin: 1px;
     }
     
     .center-hex-cell {
       width: 140px;
       height: 140px;
-      margin: -1px;
+      margin: 1px;
     }
+    :root { --hex-w: 60px; --hex-h: 60px; --hex-m: 1px; }
   }
 
   @media (min-width: 768px) {
     .hex-cell {
-      width: 65px;
-      height: 65px;
-      margin: -2px;
+      width: 70px;
+      height: 70px;
+      margin: 1px;
     }
     
     .center-hex-cell {
       width: 160px;
       height: 160px;
-      margin: -2px;
+      margin: 1px;
     }
+    :root { --hex-w: 70px; --hex-h: 70px; --hex-m: 1px; }
   }
 
   @media (min-width: 1024px) {
     .hex-cell {
-      width: 75px;
-      height: 75px;
-      margin: -2px;
+      width: 80px;
+      height: 80px;
+      margin: 1px;
     }
     
     .center-hex-cell {
       width: 180px;
       height: 180px;
-      margin: -2px;
+      margin: 1px;
     }
+    :root { --hex-w: 80px; --hex-h: 80px; --hex-m: 1px; }
   }
 }
