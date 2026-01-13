@@ -287,7 +287,12 @@ All colors MUST be HSL.
 
   /* Alternate rows offset by half hex width */
   .hex-row.offset {
-    margin-left: calc(var(--hex-w) /28);
+    /* Compensate for increased margin on cyan cells (approx +2px offset) */
+    margin-left: calc((var(--hex-w) / 28) + 2px);
+  }
+
+  .hex-cell.hex-cell--cyan {
+    margin: 3px;
   }
 
   /* Remove vertical gap between rows by overlapping 1/4 of hex height */

@@ -1,266 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-// interface CellImage {
-//   [key: string]: string;
-// }
-
-// interface AxialCoord {
-//   q: number;
-//   r: number;
-// }
-
-// const HexGrid = () => {
-//   const [cellImages, setCellImages] = useState<CellImage>({});
-//   const fileInputRef = useRef<HTMLInputElement>(null);
-//   const [selectedCell, setSelectedCell] = useState<string | null>(null);
-
-//   const handleCellClick = (cellKey: string) => {
-//     setSelectedCell(cellKey);
-//     fileInputRef.current?.click();
-//   };
-
-//   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-//     const file = event.target.files?.[0];
-//     if (!file || !selectedCell) return;
-
-//     if (!file.type.startsWith('image/')) {
-//       toast.error('Please select an image file');
-//       return;
-//     }
-
-//     const reader = new FileReader();
-//     reader.onload = (e) => {
-//       const imageUrl = e.target?.result as string;
-//       setCellImages(prev => ({
-//         ...prev,
-//         [selectedCell]: imageUrl
-//       }));
-//       toast.success('Image uploaded successfully!');
-//     };
-//     reader.readAsDataURL(file);
-    
-//     // Reset file input
-//     event.target.value = '';
-//     setSelectedCell(null);
-//   };
-
-//   const getCellStyle = (cellKey: string) => {
-//     const image = cellImages[cellKey];
-//     if (image) {
-//       return {
-//         backgroundImage: `url(${image})`,
-//         backgroundSize: 'cover',
-//         backgroundPosition: 'center',
-//         backgroundRepeat: 'no-repeat'
-//       };
-//     }
-//     return {};
-//   };
-
-//   // Generate hexagonal coordinates for the hollow center pattern
-//   const generateHexCoordinates = (): AxialCoord[] => {
-//     const coords: AxialCoord[] = [];
-//     const outerRadius = 6;
-    
-//     for (let q = -outerRadius; q <= outerRadius; q++) {
-//       const r1 = Math.max(-outerRadius, -q - outerRadius);
-//       const r2 = Math.min(outerRadius, -q + outerRadius);
-      
-//       for (let r = r1; r <= r2; r++) {
-//         const distance = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
-        
-//         // Create hollow center pattern - exclude inner cells to create the hollow center
-//         const isInnerHollow = (
-//           (distance <= 2) || // Inner core
-//           (distance === 3 && Math.abs(q) <= 1 && Math.abs(r) <= 1) || // Additional inner cells
-//           (distance === 3 && Math.abs(-q - r) <= 1 && (Math.abs(q) <= 1 || Math.abs(r) <= 1))
-//         );
-        
-//         if (!isInnerHollow) {
-//           coords.push({ q, r });
-//         }
-//       }
-//     }
-    
-//     return coords;
-//   };
-
-//   // Group coordinates by row (r coordinate) and sort by column (q coordinate)
-//   const groupByRows = (coords: AxialCoord[]) => {
-//     const rows: { [key: number]: AxialCoord[] } = {};
-    
-//     coords.forEach(coord => {
-//       if (!rows[coord.r]) {
-//         rows[coord.r] = [];
-//       }
-//       rows[coord.r].push(coord);
-//     });
-    
-//     // Sort each row by q coordinate
-//     Object.keys(rows).forEach(r => {
-//       rows[parseInt(r)].sort((a, b) => a.q - b.q);
-//     });
-    
-//     return rows;
-//   };
-
-//   const hexCoords = generateHexCoordinates();
-//   const rowGroups = groupByRows(hexCoords);
-//   const sortedRows = Object.keys(rowGroups).map(Number).sort((a, b) => a - b);
-
-//   return (
-//     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4 lg:p-8">
-//       <div className="fixed top-2 left-2 sm:top-4 sm:left-4 z-10">
-//         <Link 
-//           to="/" 
-//           className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-lg shadow-lg transition-colors text-sm sm:text-base"
-//         >
-//           ← Back to Grid
-//         </Link>
-//       </div>
-
-//       <input
-//         ref={fileInputRef}
-//         type="file"
-//         accept="image/*"
-//         onChange={handleImageUpload}
-//         className="hidden"
-//       />
-      
-//       <div className="mb-2 sm:mb-4 lg:mb-8 text-center px-4">
-//         <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">Flexagonal Grid</h1>
-//         <p className="text-xs sm:text-sm lg:text-base text-gray-600">Click on any cell to upload an image</p>
-//       </div>
-      
-//       <div className="hex-honeycomb-container">
-//         {sortedRows.map((r, rowIndex) => {
-//           const isEvenRow = r % 2 === 0;
-//           const rowCells = rowGroups[r];
-//           // Merge plan: rows 5..9 (1-based) => [2,3,4,3,2]
-//           const mergePlan: Record<number, number> = { 4: 2, 5: 3, 6: 4, 7: 3, 8: 2 };
-//           const mergeCount = mergePlan[rowIndex] ?? 0;
-          
-//           return (
-//             <div 
-//               key={r} 
-//               className="hex-honeycomb-row"
-//               style={{
-//                 marginLeft: isEvenRow ? '0px' : '35px', // Offset for odd rows
-//               }}
-//             >
-//               {(() => {
-//                 // If this row has a merge requirement and enough cells, render with a merged block centered
-//                 if (mergeCount > 0 && rowCells.length >= mergeCount) {
-//                   const startIndex = Math.floor((rowCells.length - mergeCount) / 2);
-//                   const endIndex = startIndex + mergeCount; // exclusive
-
-//                   const pre = rowCells.slice(0, startIndex);
-//                   const post = rowCells.slice(endIndex);
-
-//                   return (
-//                     <>
-//                       {pre.map((coord) => {
-//                         const cellKey = `${coord.q}-${coord.r}`;
-//                         return (
-//                           <div
-//                             key={cellKey}
-//                             className="hex-honeycomb-cell-rotated"
-//                             style={getCellStyle(cellKey)}
-//                             onClick={() => handleCellClick(cellKey)}
-//                             role="button"
-//                             tabIndex={0}
-//                             onKeyDown={(e) => {
-//                               if (e.key === 'Enter' || e.key === ' ') {
-//                                 e.preventDefault();
-//                                 handleCellClick(cellKey);
-//                               }
-//                             }}
-//                           >
-//                             {!cellImages[cellKey] && (
-//                               <div className="hex-cell-content">
-//                                 <span className="text-white text-xs sm:text-sm font-medium opacity-70">+</span>
-//                               </div>
-//                             )}
-//                           </div>
-//                         );
-//                       })}
-
-//                       {/* Merged block spanning mergeCount cells */}
-//                       <div
-//                         className="hex-merged-block"
-//                         style={{ ['--merge-cells' as any]: String(mergeCount) }}
-//                         aria-label={`Merged ${mergeCount} cells`}
-//                       />
-
-//                       {post.map((coord) => {
-//                         const cellKey = `${coord.q}-${coord.r}`;
-//                         return (
-//                           <div
-//                             key={cellKey}
-//                             className="hex-honeycomb-cell-rotated"
-//                             style={getCellStyle(cellKey)}
-//                             onClick={() => handleCellClick(cellKey)}
-//                             role="button"
-//                             tabIndex={0}
-//                             onKeyDown={(e) => {
-//                               if (e.key === 'Enter' || e.key === ' ') {
-//                                 e.preventDefault();
-//                                 handleCellClick(cellKey);
-//                               }
-//                             }}
-//                           >
-//                             {!cellImages[cellKey] && (
-//                               <div className="hex-cell-content">
-//                                 <span className="text-white text-xs sm:text-sm font-medium opacity-70">+</span>
-//                               </div>
-//                             )}
-//                           </div>
-//                         );
-//                       })}
-//                     </>
-//                   );
-//                 }
-
-//                 // Default: render all cells
-//                 return rowCells.map((coord) => {
-//                   const cellKey = `${coord.q}-${coord.r}`;
-//                   return (
-//                     <div
-//                       key={cellKey}
-//                       className="hex-honeycomb-cell-rotated"
-//                       style={getCellStyle(cellKey)}
-//                       onClick={() => handleCellClick(cellKey)}
-//                       role="button"
-//                       tabIndex={0}
-//                       onKeyDown={(e) => {
-//                         if (e.key === 'Enter' || e.key === ' ') {
-//                           e.preventDefault();
-//                           handleCellClick(cellKey);
-//                         }
-//                       }}
-//                     >
-//                       {!cellImages[cellKey] && (
-//                         <div className="hex-cell-content">
-//                           <span className="text-white text-xs sm:text-sm font-medium opacity-70">+</span>
-//                         </div>
-//                       )}
-//                     </div>
-//                   );
-//                 });
-//               })()}
-//             </div>
-//           );
-//         })}
-//       </div>
-      
-//       <div className="mt-2 sm:mt-4 lg:mt-8 text-center max-w-md px-4">
-//         <p className="text-xs sm:text-sm text-gray-500">
-//           Click on any cell to upload an image. The center area is hollow as shown in the reference.
-//         </p>
-//       </div>
-//     </div>
-//   );
- 
 interface HexCellProps {
   row: number;
   col: number;
@@ -276,7 +15,7 @@ const HexCell: React.FC<HexCellProps> = ({ row, col, isVisible, active, onClick 
 
   return (
     <div
-      className={`hex-cell ${active ? "hex-cell--active" : ""} cursor-pointer`}
+      className={`hex-cell hex-cell--cyan ${active ? "hex-cell--active" : ""} cursor-pointer`}
       onClick={onClick}
       data-row={row}
       data-col={col}
@@ -294,7 +33,7 @@ const HexCell: React.FC<HexCellProps> = ({ row, col, isVisible, active, onClick 
 const HexGrid: React.FC = () => {
   // rows config (kept as you had it)
   const gridConfig = [
-    { cells: 7, offset: true },  
+    { cells: 7, offset: true },
     { cells: 8, offset: false },
     { cells: 9, offset: true },
     { cells: 8, offset: false },
@@ -336,61 +75,103 @@ const HexGrid: React.FC = () => {
     11: { startIdx: 3, count: 2 }, // row 12: 4,5
   }), []);
 
-    // Row pattern for hexagonal ring (2–3–4–5–4–3–2)
-  const rowPattern = [2, 3, 4, 5, 6, 5, 4, 3, 2];
+  // ========================================================================
+  // SVG MERGED CENTER REGION - GEOMETRY-BASED GAP IMPLEMENTATION
+  // ========================================================================
+  // 
+  // Gap Strategy: We use a WHITE STROKE on the merged region to create 
+  // uniform visual gaps. This avoids coordinate mismatches between DOM cells
+  // and SVG overlay.
+  //
+  // Key constants:
+  // - HEX_SIZE: radius of each hexagon in SVG coordinates
+  // - GAP_STROKE: stroke width that creates visual gap (matches DOM margin)
+  // - CENTER_RADIUS: hex distance from origin that defines "center" region
+  //
+  // IMPORTANT: To adjust gap width, modify GAP_STROKE. Do NOT tune HEX_SIZE
+  // for gap purposes - that causes non-uniform gaps in different directions.
+  // ========================================================================
 
-  // Generate all hex centers
-  const generateCenters = () => {
-    const centers: [number, number][] = [];
-    rowPattern.forEach((count, row) => {
-      const y = (row - Math.floor(rowPattern.length / 2)) * (HEX_SIZE * 1.5);
-      const startX = -((count - 1) * HEX_SIZE * Math.sqrt(3)) / 2;
-      for (let i = 0; i < count; i++) {
-        const x = startX + i * (HEX_SIZE * Math.sqrt(3));
-        centers.push([x, y]);
-      }
-    });
-    return centers;
+  const HEX_SIZE = 28;              // SVG hex radius (base geometric size)
+  const GAP_STROKE = 2;             // Stroke width for gap (~1px margin like DOM cells)
+  const CENTER_HEX_SIZE = HEX_SIZE; // Center hexes use same size
+  const FILL = "#22c55e";           // Green fill
+  const BACKGROUND_COLOR = "#f1f5f9"; // Background color for stroke gap (slate-100)
+
+  // TUNABLES for Merge Center Fix
+  const INNER_OVERLAP = 1.12;       // Overlap factor for inner underlay hexes
+  const INNER_STROKE = 8;           // Stroke width for inner underlay hexes
+  const SEAM_STROKE = 14;           // Stroke width for top/bottom seam patches
+  const ROW_EPS = 8;                // Tolerance for detecting rows by cy
+
+  // Axial hex distance (proper hex-grid distance, not Euclidean)
+  // Uses cube coordinate system: s = -q - r
+  const hexDistance = (q1: number, r1: number, q2: number, r2: number) => {
+    const s1 = -q1 - r1;
+    const s2 = -q2 - r2;
+    return Math.max(Math.abs(q1 - q2), Math.abs(r1 - r2), Math.abs(s1 - s2));
   };
 
-    // --- Static merged-center SVG helpers (no drag) ---
-  const HEX_SIZE = 25;              // outer ring hex radius
-  // const CENTER_SIZE = 30;           // old center hex radius (unused)
-  const CENTER_HEX_SIZE = HEX_SIZE; // size for the two center hexes
-  const FILL = "#22c55e";           // green fill
-  // const STROKE = "#16a34a";         // darker green stroke
+  // Define the merged center region using proper axial coordinates
+  // Center is at (0,0), we include all hexes within CENTER_RADIUS hex distance
+  const CENTER_RADIUS = 2;
 
+  // Generate axial coordinates for the full hex grid area
+  const generateAxialGrid = (radius: number) => {
+    const cells: Array<{ q: number; r: number }> = [];
+    for (let q = -radius; q <= radius; q++) {
+      for (let r = -radius; r <= radius; r++) {
+        if (hexDistance(q, r, 0, 0) <= radius) {
+          cells.push({ q, r });
+        }
+      }
+    }
+    return cells;
+  };
 
-  // Keep only the ring (exclude inner cluster)
-  const filterRing = (centers: [number, number][]) =>
-    centers.filter(([x, y]) => {
-      return (
-        Math.abs(y) > HEX_SIZE * 1.1 || // keep top/bottom rows
-        Math.abs(x) > HEX_SIZE * 1.7    // keep left/right sides
-      );
-    });
+  // Check if a cell is in the center region
+  const isInCenter = (q: number, r: number) => hexDistance(q, r, 0, 0) <= CENTER_RADIUS;
 
-  const outerCenters = filterRing(generateCenters());
+  // Convert axial to pixel coordinates (pointy-top hex)
+  const axialToPixelCoord = (q: number, r: number, size: number): [number, number] => {
+    const x = size * Math.sqrt(3) * (q + r / 2);
+    const y = size * 1.5 * r;
+    return [x, y];
+  };
 
-  // Two center hexes side-by-side (pointy-top). Distance from origin is size * sqrt(3) / 2
-  const centerCenters = useMemo(() => {
-    const d = CENTER_HEX_SIZE * Math.sqrt(3) / 2;
-    return [
-      [-d, 0],
-      [ d, 0],
-    ] as [number, number][];
-  }, [CENTER_HEX_SIZE]);
+  // Generate center cell pixel positions
+  const centerCells = useMemo(() => {
+    return generateAxialGrid(CENTER_RADIUS)
+      .filter(({ q, r }) => isInCenter(q, r))
+      .map(({ q, r }) => axialToPixelCoord(q, r, HEX_SIZE));
+  }, []);
+
+  // Build hex polygon points string for SVG (pointy-top orientation)
+  // No scaling distortion - all hexes have uniform geometry
+  const getHexPoints = (cx: number, cy: number, size: number) => {
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i < 6; i++) {
+      // Pointy-top: angles at -90, -30, 30, 90, 150, 210 degrees
+      const angle = (-90 + i * 60) * (Math.PI / 180);
+      const x = cx + size * Math.cos(angle);
+      const y = cy + size * Math.sin(angle);
+      pts.push([x, y]);
+    }
+    return pts.map(([x, y]) => `${x},${y}`).join(" ");
+  };
 
 
   const [overlaySize, setOverlaySize] = useState({ w: 0, h: 0 });
+  // Track the actual DOM positions of hidden cells for SVG alignment
+  const [hiddenCellPositions, setHiddenCellPositions] = useState<Array<{ cx: number; cy: number; width: number; height: number }>>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [centerImage, setCenterImage] = useState<string | null>(null);
 
   // No-op handlers to keep no-drag behavior while satisfying requested structure
-  const handleSvgPointerMove = (_e: React.PointerEvent<SVGSVGElement>) => {};
-  const endDrag = (_e?: React.PointerEvent<SVGSVGElement>) => {};
+  const handleSvgPointerMove = (_e: React.PointerEvent<SVGSVGElement>) => { };
+  const endDrag = (_e?: React.PointerEvent<SVGSVGElement>) => { };
   const handleCenterClick = () => {
     console.log('[HexGrid] Center/outer clicked -> opening file picker');
     // Trigger hidden file input for image selection
@@ -406,46 +187,47 @@ const HexGrid: React.FC = () => {
     e.currentTarget.value = '';
   };
 
-  // Convert axial coords (q, r) to pixel for pointy-top hexes
-  const axialToPixel = (q: number, r: number, size: number) => {
-    const x = size * Math.sqrt(3) * (q + r / 2);
-    const y = size * 1.5 * r;
-    return [x, y] as const;
-  };
+  // Note: axialToPixelCoord is now defined above in the geometry section
 
-  // // Generate 6 outer centers around (0,0) in axial ring (radius 1)
-  // const outerCenters = useMemo(() => {
-  //   const neighbors: Array<[number, number]> = [
-  //     [1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1],
-  //   ];
-  //   return neighbors.map(([q, r]) => axialToPixel(q, r, CENTER_SIZE));
-  // }, []);
-
-  // Build hex polygon points string for SVG
-  const getHexPoints = (cx: number, cy: number, size: number) => {
-    // pointy-top: angles start at -90deg, step 60deg
-    const pts: Array<[number, number]> = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (-90 + i * 60) * (Math.PI / 180);
-      const x = cx + size * Math.cos(angle);
-      const y = cy + size * Math.sin(angle);
-      pts.push([x, y]);
-    }
-    return pts.map(([x, y]) => `${x},${y}`).join(" ");
-  };
-
-  // Measure container size to position static SVG overlay
+  // Measure container size AND hidden cell positions for SVG alignment
   useEffect(() => {
     const measure = () => {
       const root = containerRef.current;
       if (!root) return;
-      const box = root.getBoundingClientRect();
-      setOverlaySize({ w: Math.round(box.width), h: Math.round(box.height) });
+
+      const containerBox = root.getBoundingClientRect();
+      setOverlaySize({ w: Math.round(containerBox.width), h: Math.round(containerBox.height) });
+
+      // Find all center cells that are part of merged region
+      // These have data-center="true" attribute
+      const centerCellElements = root.querySelectorAll('[data-center="true"]');
+      const positions: Array<{ cx: number; cy: number; width: number; height: number }> = [];
+
+      centerCellElements.forEach((cell) => {
+        const cellBox = cell.getBoundingClientRect();
+        // Convert to container-relative coordinates (SVG viewBox will be set to match container)
+        const cx = cellBox.left - containerBox.left + cellBox.width / 2;
+        const cy = cellBox.top - containerBox.top + cellBox.height / 2;
+        positions.push({
+          cx,
+          cy,
+          width: cellBox.width,
+          height: cellBox.height
+        });
+      });
+
+      setHiddenCellPositions(positions);
     };
+
+    // Initial measure after a small delay to ensure layout is complete
+    const timeout = setTimeout(measure, 100);
     const onResize = () => requestAnimationFrame(measure);
-    onResize();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   return (
@@ -476,18 +258,26 @@ const HexGrid: React.FC = () => {
                     );
                   })}
 
-                  {/* Render hidden placeholders for merged cells so overlay can compute their geometry */}
-                  {/* Invisible placeholders to preserve gap for merged region */}
+
+                  {/* Center cells - visible with gaps, background layer shows through */}
+                  {/* Keep data attributes for DOM position measurement */}
                   {Array.from({ length: spec.count }, (_, i) => {
                     const colIndex = spec.startIdx + i;
                     const k = keyOf(rowIndex, colIndex);
                     return (
                       <div
                         key={k}
-                        className="hex-cell"
+                        className="hex-cell hex-cell-center"
                         data-row={rowIndex}
                         data-col={colIndex}
-                        style={{ visibility: "hidden", pointerEvents: "none" }}
+                        data-center="true"
+                        style={{
+                          // Transparent so background layer shows through gaps
+                          background: "transparent",
+                          // Remove any border that might cause visible gaps
+                          border: "none",
+                          pointerEvents: "none"
+                        }}
                       />
                     );
                   })}
@@ -528,93 +318,104 @@ const HexGrid: React.FC = () => {
                 })}
               </div>
             );
-            
+
           })}
         </div>
-        {/* Static merged center cavity with clipPaths and optional image (single overlay) */}
-        {overlaySize.w > 0 && overlaySize.h > 0 && (
+        {/* ============================================================
+            BACKGROUND LAYER (z-index: 1)
+            - Sits BEHIND the hex cells
+            - Shows through the gaps between center hex cells
+            - Provides solid color or image fill for merged center region
+            ============================================================ */}
+        {overlaySize.w > 0 && overlaySize.h > 0 && hiddenCellPositions.length > 0 && (
+          <svg
+            className="absolute inset-0 w-full h-full"
+            viewBox={`0 0 ${overlaySize.w} ${overlaySize.h}`}
+            style={{ zIndex: 1, pointerEvents: "none" }}
+            shapeRendering="geometricPrecision"
+          >
+            {/* Scaled group to create extra gap between green center and cyan ring */}
+            {/* shrinking the whole union preserves internal overlap while pulling edges away from neighbors */}
+            <g style={{
+              transform: "scale(0.95)",
+              transformOrigin: `${overlaySize.w / 2}px ${overlaySize.h / 2}px`
+            }}>
+              <defs>
+                {/* Clip path for background - slight overlap to ensure full coverage */}
+                <clipPath id="clip-center-bg" clipPathUnits="userSpaceOnUse">
+                  {hiddenCellPositions.map(({ cx, cy, width }, i) => {
+                    // 1.3 to ensure robust overlap for solid shape
+                    const OVERLAP_FACTOR = 1.30;
+                    const hexRadius = (width / 2) * OVERLAP_FACTOR;
+                    return (
+                      <polygon key={`bg-${i}`} points={getHexPoints(cx, cy, hexRadius)} />
+                    );
+                  })}
+                </clipPath>
+              </defs>
+
+              {/* Background fill - visible through gaps in center hex cells */}
+              <g clipPath="url(#clip-center-bg)">
+                {centerImage ? (
+                  <image
+                    href={centerImage}
+                    x={0}
+                    y={0}
+                    width={overlaySize.w}
+                    height={overlaySize.h}
+                    preserveAspectRatio="xMidYMid slice"
+                  />
+                ) : (
+                  <rect
+                    x={0}
+                    y={0}
+                    width={overlaySize.w}
+                    height={overlaySize.h}
+                    fill={FILL}
+                  />
+                )}
+              </g>
+            </g>
+          </svg>
+        )}
+
+        {/* ============================================================
+            OVERLAY LAYER (z-index: 10)
+            - Sits ABOVE the hex cells
+            - Used ONLY for click handling on the center region
+            - Transparent fill, no visual appearance
+            ============================================================ */}
+        {overlaySize.w > 0 && overlaySize.h > 0 && hiddenCellPositions.length > 0 && (
           <svg
             ref={svgRef}
             className="absolute inset-0 w-full h-full"
-            viewBox="-300 -300 600 600"
-            onPointerMove={handleSvgPointerMove}
-            onPointerUp={endDrag}
-            onPointerLeave={endDrag}
-            style={{ zIndex: 5 }}
+            viewBox={`0 0 ${overlaySize.w} ${overlaySize.h}`}
+            style={{ zIndex: 10, pointerEvents: "none" }}
           >
             <defs>
-              <clipPath id="clip-center">
-                {centerCenters.map(([cx, cy], i) => (
-                  <polygon key={`cc-${i}`} points={getHexPoints(cx, cy, CENTER_HEX_SIZE)} />
-                ))}
-              </clipPath>
-              <clipPath id="clip-merged">
-                {centerCenters.map(([cx, cy], i) => (
-                  <polygon key={`cm-${i}`} points={getHexPoints(cx, cy, CENTER_HEX_SIZE)} />
-                ))}
-                {outerCenters.map(([x, y], i) => (
-                  <polygon key={`m-${i}`} points={getHexPoints(x, y, HEX_SIZE)} />
-                ))}
-              </clipPath>
-              {/* Outer ring merged clip (no boundaries) */}
-              <clipPath id="clip-outer-merged">
-                {outerCenters.map(([x, y], i) => (
-                  <polygon key={`om-${i}`} points={getHexPoints(x, y, HEX_SIZE)} />
-                ))}
+              {/* Clip path for click area - matches visible hex size */}
+              <clipPath id="clip-center-click" clipPathUnits="userSpaceOnUse">
+                {hiddenCellPositions.map(({ cx, cy, width }, i) => {
+                  const hexRadius = width / 2;
+                  return (
+                    <polygon key={`click-${i}`} points={getHexPoints(cx, cy, hexRadius)} />
+                  );
+                })}
               </clipPath>
             </defs>
 
-            {centerImage ? (
-              <>
-                <image
-                  href={centerImage}
-                  x={-300}
-                  y={-300}
-                  width={600}
-                  height={600}
-                  preserveAspectRatio="xMidYMid slice"
-                  clipPath="url(#clip-merged)"
-                  style={{ cursor: "pointer" }}
-                  onClick={handleCenterClick}
-                />
-                {/* Note: no outer rect here so the image remains visible across the entire merged area */}
-                {centerCenters.map(([cx, cy], i) => (
-                  <polygon
-                    key={`co-${i}`}
-                    points={getHexPoints(cx, cy, CENTER_HEX_SIZE)}
-                    fill="transparent"
-                    stroke={FILL}
-                    strokeWidth="0.75"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                ))}
-              </>
-            ) : (
-              <>
-                {/* Outer ring as a single merged filled shape (no boundaries) */}
-                <rect
-                  x={-300}
-                  y={-300}
-                  width={600}
-                  height={600}
-                  fill={FILL}
-                  clipPath="url(#clip-outer-merged)"
-                  style={{ cursor: "pointer" }}
-                  onClick={handleCenterClick}
-                />
-                {centerCenters.map(([cx, cy], i) => (
-                  <polygon
-                    key={`cf-${i}`}
-                    points={getHexPoints(cx, cy, CENTER_HEX_SIZE)}
-                    fill={FILL}
-                    // no stroke for seamless merge appearance
-                    style={{ cursor: "pointer" }}
-                    onClick={handleCenterClick}
-                  />
-                ))}
-              </>
-            )}
+            {/* Transparent click target for center region */}
+            <g clipPath="url(#clip-center-click)">
+              <rect
+                x={0}
+                y={0}
+                width={overlaySize.w}
+                height={overlaySize.h}
+                fill="transparent"
+                style={{ cursor: "pointer", pointerEvents: "auto" }}
+                onClick={handleCenterClick}
+              />
+            </g>
           </svg>
         )}
         {/* Hidden file input for center image upload */}
@@ -631,3 +432,5 @@ const HexGrid: React.FC = () => {
 };
 
 export default HexGrid;
+
+
